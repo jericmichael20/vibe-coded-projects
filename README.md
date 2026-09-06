@@ -2,23 +2,25 @@
 
 A collection of small apps and experiments I built with AI agents — described in plain language, coded together, shipped to the browser. Each project started as an idea, not a spec.
 
+> **How to try them:** click the **▶ Run live** links below. If you just click an `.html` file here on GitHub, you'll see its source code — that's normal. GitHub shows the *code*; the live site runs the *app*.
+
 ## Apps
 
 | Project | What it is | Try it |
 |---|---|---|
-| [Time Tracker](time-tracker.html) | Single-file browser time tracker — live stopwatch per task, sessions saved in localStorage | open the file |
-| [Daily Todo](daily-todo/daily-todo.html) | Day planner with tests and desktop/mobile screenshots | open the file |
-| [Todo + Time Tracker](todo-time-tracker/todo-time-tracker.html) | Hybrid of the two above | open the file |
-| [K-Drama Tracker](kdrama-tracker.html) | Watchlist for keeping up with series | open the file |
-| [Option Picker](option-picker-demo.html) | Decision helper — pick from a list, spin-style | open the file |
+| Time Tracker | Single-file browser time tracker — live stopwatch per task, sessions saved in localStorage | **[▶ Run live](https://jericmichael20.github.io/vibe-coded-projects/time-tracker.html)** |
+| Daily Todo | Day planner with tests and desktop/mobile screenshots | **[▶ Run live](https://jericmichael20.github.io/vibe-coded-projects/daily-todo/daily-todo.html)** |
+| Todo + Time Tracker | Hybrid of the two above | **[▶ Run live](https://jericmichael20.github.io/vibe-coded-projects/todo-time-tracker/todo-time-tracker.html)** |
+| K-Drama Tracker | Watchlist for keeping up with series | **[▶ Run live](https://jericmichael20.github.io/vibe-coded-projects/kdrama-tracker.html)** |
+| Option Picker | Decision helper — pick from a list, spin-style | **[▶ Run live](https://jericmichael20.github.io/vibe-coded-projects/option-picker-demo.html)** |
 
 ## 3D & Visual
 
-| Project | What it is |
-|---|---|
-| [House & Garage 3D](house-garage-3d.html) | Browser 3D model of a house with garage |
-| [Simple House](Simple%20House/) | 3D house built with Python → exported `.glb`, viewable in browser |
-| [Room Concept](room-concept/) | Room redesign mockups generated from photos (Python + SVG) |
+| Project | What it is | Try it |
+|---|---|---|
+| House & Garage 3D | Browser 3D model of a house with garage | **[▶ Run live](https://jericmichael20.github.io/vibe-coded-projects/house-garage-3d.html)** |
+| Simple House | 3D house built with Python → exported `.glb`, viewable in browser | [folder](Simple%20House/) |
+| Room Concept | Room redesign mockups generated from photos (Python + SVG) | [folder](room-concept/) |
 
 ## Notes
 
