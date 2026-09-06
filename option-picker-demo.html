@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  .wrap { max-width: 560px; padding: 4px; font-size: 14px; }
+  h3 { margin: 0 0 4px; font-size: 15px; }
+  p.sub { margin: 0 0 12px; color: var(--muted-foreground); font-size: 13px; }
+  .opt { display: block; width: 100%; text-align: left; margin: 0 0 8px; padding: 12px 14px;
+         border: 1px solid var(--border); border-radius: 10px; background: var(--card);
+         color: var(--foreground); cursor: pointer; font: inherit; }
+  .opt b { display: block; margin-bottom: 2px; }
+  .opt span { color: var(--muted-foreground); font-size: 12.5px; }
+  .opt:hover { border-color: var(--accent); }
+  .opt.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .out { display: none; margin-top: 12px; padding: 10px 12px; border-radius: 10px;
+         background: var(--card); border: 1px dashed var(--border); }
+  .out.show { display: block; }
+  .out code { display: block; margin: 6px 0; padding: 8px 10px; border-radius: 8px;
+              background: var(--muted-foreground, #888)10; background: color-mix(in srgb, var(--muted-foreground) 12%, transparent);
+              font-size: 13px; user-select: all; }
+  .copy { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);
+          background: var(--accent); color: var(--card); cursor: pointer; font: inherit; font-size: 13px; }
+  .hint { margin-top: 10px; font-size: 12px; color: var(--muted-foreground); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h3>Which design direction?</h3>
+  <p class="sub">Demo of the picker pattern ChatGPT can build for you in Canvas.</p>
+  <button class="opt" data-t="I choose Direction 1: Clean Corporate — navy and white, card layout, formal tone."><b>Direction 1 — Clean Corporate</b><span>Navy and white, card layout, formal tone</span></button>
+  <button class="opt" data-t="I choose Direction 2: Playful Startup — rounded corners, bright accent, friendly copy."><b>Direction 2 — Playful Startup</b><span>Rounded corners, bright accent, friendly copy</span></button>
+  <button class="opt" data-t="I choose Direction 3: Dark Minimal — near-black, one neon accent, lots of whitespace."><b>Direction 3 — Dark Minimal</b><span>Near-black, one neon accent, lots of whitespace</span></button>
+  <div class="out" id="out">
+    Paste this back into the chat:
+    <code id="reply"></code>
+    <button class="copy" id="copyBtn">Copy reply</button>
+  </div>
+  <p class="hint">One click picks, one Ctrl+C + Ctrl+V answers. No typing numbers.</p>
+</div>
+<script>
+  const out = document.getElementById('out'), reply = document.getElementById('reply');
+  document.querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.opt').forEach(x => x.classList.remove('sel'));
+    b.classList.add('sel');
+    reply.textContent = b.dataset.t;
+    out.classList.add('show');
+  }));
+  document.getElementById('copyBtn').addEventListener('click', async e => {
+    try { await navigator.clipboard.writeText(reply.textContent); e.target.textContent = 'Copied!'; }
+    catch { reply.focus(); document.execCommand && document.execCommand('selectAll'); e.target.textContent = 'Text selected — Ctrl+C'; }
+    setTimeout(() => e.target.textContent = 'Copy reply', 1800);
+  });
+</script>
+</body>
+</html>

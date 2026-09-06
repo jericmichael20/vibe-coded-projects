@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎬 My Kdrama Tracker</title>
+
+<!-- ═══════════════════════════════════════════════════════
+     CSS — the STYLE layer. This controls colors, spacing,
+     and how everything looks. Think of it as the decoration
+     of a house.
+     ═══════════════════════════════════════════════════════ -->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #141414;           /* Netflix-ish dark */
+    color: #eee;
+    min-height: 100vh;
+    padding: 32px 16px;
+  }
+
+  .app { max-width: 900px; margin: 0 auto; }
+
+  h1 { font-size: 28px; margin-bottom: 4px; }
+  h1 span { color: #e50914; }      /* that red accent */
+
+  .subtitle { color: #888; margin-bottom: 24px; font-size: 14px; }
+
+  /* ── stats bar ── */
+  .stats { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .stat {
+    background: #1f1f1f; border: 1px solid #333; border-radius: 10px;
+    padding: 12px 20px; text-align: center; flex: 1; min-width: 120px;
+  }
+  .stat b { font-size: 22px; display: block; }
+  .stat small { color: #888; }
+
+  /* ── add form ── */
+  .add-form { display: flex; gap: 8px; margin-bottom: 20px; }
+  .add-form input {
+    flex: 1; padding: 12px 16px; border-radius: 10px; border: 1px solid #333;
+    background: #1f1f1f; color: #eee; font-size: 15px; outline: none;
+  }
+  .add-form input:focus { border-color: #e50914; }
+  .add-form button {
+    padding: 12px 24px; border-radius: 10px; border: none; cursor: pointer;
+    background: #e50914; color: white; font-size: 15px; font-weight: 600;
+  }
+  .add-form button:hover { background: #f6121d; }
+
+  /* ── filter tabs ── */
+  .filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filters button {
+    padding: 8px 16px; border-radius: 20px; border: 1px solid #333;
+    background: transparent; color: #aaa; cursor: pointer; font-size: 13px;
+  }
+  .filters button.active { background: #e50914; color: white; border-color: #e50914; }
+
+  /* ── drama cards ── */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .card {
+    background: #1f1f1f; border: 1px solid #333; border-radius: 12px;
+    padding: 16px; display: flex; flex-direction: column; gap: 10px;
+    transition: transform .15s, border-color .15s;
+  }
+  .card:hover { transform: translateY(-3px); border-color: #555; }
+  .card h3 { font-size: 16px; line-height: 1.3; }
+
+  .badge {
+    align-self: flex-start; font-size: 11px; font-weight: 700;
+    padding: 3px 10px; border-radius: 12px; text-transform: uppercase; letter-spacing: .5px;
+  }
+  .badge.watchlist { background: #333; color: #bbb; }
+  .badge.watching  { background: #1a3a5c; color: #6db3f2; }
+  .badge.finished  { background: #14471f; color: #5fd97a; }
+
+  /* stars */
+  .stars { font-size: 20px; cursor: pointer; user-select: none; letter-spacing: 2px; }
+  .stars .on  { color: #f5c518; }
+  .stars .off { color: #444; }
+
+  .card-actions { display: flex; gap: 8px; margin-top: auto; }
+  .card-actions button {
+    flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #333;
+    background: #262626; color: #ccc; cursor: pointer; font-size: 13px;
+  }
+  .card-actions button:hover { border-color: #e50914; color: white; }
+
+  .empty { text-align: center; color: #666; padding: 40px; grid-column: 1/-1; }
+</style>
+</head>
+
+<body>
+<!-- ═══════════════════════════════════════════════════════
+     HTML — the STRUCTURE layer. The skeleton of the page:
+     where things sit. JavaScript fills in the drama cards.
+     ═══════════════════════════════════════════════════════ -->
+<div class="app">
+  <h1>🎬 My <span>Kdrama</span> Tracker</h1>
+  <p class="subtitle">Built by Kael (with Brielle) — my first web app</p>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="add-form">
+    <input id="newTitle" type="text" placeholder="Add a drama title..." />
+    <button onclick="addDrama()">+ Add</button>
+  </div>
+
+  <div class="filters" id="filters"></div>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   JAVASCRIPT — the BEHAVIOR layer. This is the brain:
+   it holds the data, draws the cards, and reacts to clicks.
+   ═══════════════════════════════════════════════════════ */
+
+// ── 1. THE DATA ──
+// Each drama is an object {title, status, rating}.
+// The whole list lives in one array. Simple!
+const seedData = [
+  { title: "See You in My 19th Life", status: "watchlist", rating: 0 },
+  { title: "King the Land",           status: "watchlist", rating: 0 },
+  { title: "Heartbeat",               status: "watchlist", rating: 0 },
+  { title: "A Time Called You",       status: "watchlist", rating: 0 },
+  { title: "Destined with You",       status: "watchlist", rating: 0 },
+  { title: "Queen of Tears",          status: "finished",  rating: 5 },
+  { title: "The Impossible Heir",     status: "watchlist", rating: 0 },
+];
+
+// localStorage = the browser's tiny built-in database.
+// We save under the key "kael.kdramas" so data survives refresh/close.
+const STORAGE_KEY = "kael.kdramas";
+
+let dramas = JSON.parse(localStorage.getItem(STORAGE_KEY)) || seedData;
+let currentFilter = "all";
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(dramas));
+}
+
+// ── 2. THE RENDERER ──
+// "Render" = rebuild the visible page from the data.
+// Every time data changes, we call render() again.
+function render() {
+  renderStats();
+  renderFilters();
+  renderCards();
+}
+
+function renderStats() {
+  const watching = dramas.filter(d => d.status === "watching").length;
+  const finished = dramas.filter(d => d.status === "finished").length;
+  const total = dramas.length;
+  document.getElementById("stats").innerHTML = `
+    <div class="stat"><b>${total}</b><small>total dramas</small></div>
+    <div class="stat"><b>${watching}</b><small>currently watching</small></div>
+    <div class="stat"><b>${finished}</b><small>finished 🏆</small></div>
+  `;
+}
+
+function renderFilters() {
+  const filters = ["all", "watchlist", "watching", "finished"];
+  document.getElementById("filters").innerHTML = filters.map(f => `
+    <button class="${f === currentFilter ? "active" : ""}"
+            onclick="setFilter('${f}')">${f}</button>
+  `).join("");
+}
+
+function renderCards() {
+  const visible = currentFilter === "all"
+    ? dramas
+    : dramas.filter(d => d.status === currentFilter);
+
+  if (visible.length === 0) {
+    document.getElementById("grid").innerHTML =
+      `<div class="empty">Nothing here yet — add a drama above! 🍿</div>`;
+    return;
+  }
+
+  document.getElementById("grid").innerHTML = visible.map(d => {
+    const i = dramas.indexOf(d);   // index in the master list
+    return `
+    <div class="card">
+      <span class="badge ${d.status}">${d.status}</span>
+      <h3>${d.title}</h3>
+      <div class="stars" onclick="cycleRating(${i})">${starHtml(d.rating)}</div>
+      <div class="card-actions">
+        <button onclick="cycleStatus(${i})">⟳ status</button>
+        <button onclick="removeDrama(${i})">✕</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// helper: turn a rating number (0–5) into star characters
+function starHtml(rating) {
+  let s = "";
+  for (let i = 1; i <= 5; i++) {
+    s += `<span class="${i <= rating ? "on" : "off"}">★</span>`;
+  }
+  return s;
+}
+
+// ── 3. THE ACTIONS ──
+// Each one: change data → save → re-render. That's the whole loop.
+
+function addDrama() {
+  const input = document.getElementById("newTitle");
+  const title = input.value.trim();
+  if (!title) return;                    // ignore empty input
+  dramas.push({ title, status: "watchlist", rating: 0 });
+  input.value = "";
+  save(); render();
+}
+
+function cycleStatus(i) {
+  const order = ["watchlist", "watching", "finished"];
+  const next = (order.indexOf(dramas[i].status) + 1) % order.length;
+  dramas[i].status = order[next];
+  save(); render();
+}
+
+function cycleRating(i) {
+  dramas[i].rating = (dramas[i].rating + 1) % 6;   // 0→1→…→5→0
+  save(); render();
+}
+
+function removeDrama(i) {
+  if (confirm(`Remove "${dramas[i].title}"?`)) {
+    dramas.splice(i, 1);
+    save(); render();
+  }
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  render();
+}
+
+// Press Enter in the input box = same as clicking Add
+document.getElementById("newTitle").addEventListener("keydown", e => {
+  if (e.key === "Enter") addDrama();
+});
+
+// ── 4. GO! ──
+render();
+</script>
+</body>
+</html>

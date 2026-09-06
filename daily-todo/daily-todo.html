@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Daylist — Daily to-do</title>
+<style>
+:root{--ink:#253c34;--muted:#68756e;--line:#dce2da;--paper:#fffefa;--accent:#32624b;--soft:#edf2e9;--bg:#f3f2ec}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',Arial,sans-serif;font-size:16px}button,input{font:inherit}button{cursor:pointer;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);padding:9px 14px}button:hover{background:var(--soft)}button:focus-visible,input:focus-visible{outline:3px solid #82a88c;outline-offset:3px}button:disabled{opacity:.45;cursor:default}.app{width:min(740px,100%);margin:0 auto;padding:42px 24px}.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.4px}.mark{font-size:22px;color:var(--accent)}.brand small{margin-left:auto;color:var(--muted);font-weight:400;letter-spacing:0;font-size:13px}.intro{margin:46px 0 28px}.eyebrow{text-transform:uppercase;font-size:11px;letter-spacing:2px;color:var(--muted);font-weight:700}h1{font-family:Georgia,serif;font-weight:400;font-size:clamp(36px,7vw,48px);letter-spacing:-1.5px;margin:12px 0}p{line-height:1.6}.intro p{color:var(--muted);margin:0}.sheet{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 32px #253c3406;padding:28px}.daybar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.date-wrap{flex:1;min-width:165px}.date-wrap label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}input[type=date]{max-width:100%;border:0;background:transparent;color:var(--ink);font-weight:600;padding:3px 0;min-height:36px}.arrow{padding:8px;width:44px}.progress-copy{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:13px;margin:24px 0 10px}progress{display:block;appearance:none;border:none;border-radius:4px;overflow:hidden;width:100%;height:5px;background:var(--soft);color:var(--accent)}progress::-webkit-progress-bar{background:var(--soft)}progress::-webkit-progress-value{background:var(--accent)}progress::-moz-progress-bar{background:var(--accent)}form{display:flex;gap:9px;margin:28px 0 22px}#task-input{flex:1;min-width:0;background:#fff;border:1px solid var(--line);border-radius:8px;padding:13px;color:var(--ink)}.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}.primary:hover{background:#244c39}.filters{display:flex;gap:4px;border-bottom:1px solid var(--line);padding-bottom:14px}.filters button{background:transparent;border-color:transparent;color:var(--muted);font-size:14px;padding:8px 13px}.filters button[aria-pressed=true]{background:var(--soft);color:var(--ink);font-weight:600}ul{list-style:none;padding:0;margin:0}.task{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}.task-title{flex:1;overflow-wrap:anywhere;line-height:1.5}.task.done .task-title{text-decoration:line-through;color:var(--muted)}.check-wrap{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;cursor:pointer}.check-wrap input{width:20px;height:20px;accent-color:var(--accent);cursor:pointer}.delete{border:0;background:transparent;color:var(--muted);font-size:14px;padding:8px}.delete:hover{color:#982e25;background:#fbefea}.empty{padding:38px 8px;text-align:center}.empty b{font-family:Georgia,serif;font-weight:400;font-size:23px}.empty p{font-size:14px;color:var(--muted);margin:8px 0 0}.bottom{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:18px}.bottom span{font-size:12px;color:var(--muted)}.text-button{border:0;background:transparent;font-size:13px;padding:8px}.foot{font-size:12px;color:var(--muted);text-align:center;margin-top:22px}.notice{font-size:13px;padding:12px;background:#fff0da;border-radius:7px;color:#78420b;margin-top:15px}[hidden]{display:none!important}
+@media(max-width:520px){.app{padding:24px 14px}.intro{margin:32px 6px 24px}.sheet{padding:20px 16px}.brand small{font-size:12px}.bottom{align-items:flex-start}.bottom span{max-width:150px}form{gap:7px}.primary{padding:10px}.daybar{gap:7px}.date-wrap{flex-basis:100%;margin-bottom:5px}#today{flex:1}}
+</style>
+</head>
+<body>
+<main class="app">
+<header class="brand"><span class="mark" aria-hidden="true">✓</span> Daylist <small>A little focus, every day.</small></header>
+<section class="intro"><div class="eyebrow">Your daily to-do</div><h1>One thing at a time.</h1><p>Make a little plan. Leave room for life.</p></section>
+<section class="sheet" aria-label="Daily task list">
+<div class="daybar"><div class="date-wrap"><label for="day">Your day</label><input id="day" type="date"></div><button class="arrow" id="prev" aria-label="Previous day">←</button><button id="today">Today</button><button class="arrow" id="next" aria-label="Next day">→</button></div>
+<div class="progress-copy" aria-live="polite"><span id="summary">0 of 0 completed</span><span id="percent">0%</span></div><progress id="progress" max="100" value="0" aria-label="Daily completion"></progress>
+<form id="add-form"><input id="task-input" aria-label="New task" placeholder="What would you like to get done?" maxlength="300" autocomplete="off"><button class="primary" type="submit">Add task</button></form>
+<nav class="filters" aria-label="Filter tasks"><button data-filter="all" aria-pressed="true">All</button><button data-filter="active" aria-pressed="false">To do</button><button data-filter="done" aria-pressed="false">Done</button></nav>
+<ul id="tasks" aria-label="Tasks"></ul>
+<div class="empty" id="empty"><b>A fresh page.</b><p>Add your first task. Small is a good start.</p></div>
+<div class="bottom"><span id="save-note">Saved on this browser only</span><button id="clear" class="text-button" disabled>Clear completed</button></div>
+<div id="notice" class="notice" role="alert" hidden></div>
+</section>
+<p class="foot">Just your day, at your pace. No account. No distractions.</p>
+</main>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const STORAGE='daylist.daily.v1';
+const localDate=date=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+let days={}, selected=localDate(new Date());
+function warn(message){$('#notice').textContent=message;$('#notice').hidden=false;$('#save-note').textContent='Not saved — keep this page open';}
+try{
+  const raw=localStorage.getItem(STORAGE);
+  if(raw){
+    const parsed=JSON.parse(raw);
+    if(!parsed || typeof parsed!=='object' || Array.isArray(parsed))throw new Error('Invalid data');
+    for(const [key,list] of Object.entries(parsed)){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(key)||!Array.isArray(list)||!list.every(t=>t&&typeof t.id==='string'&&typeof t.text==='string'&&typeof t.done==='boolean'))throw new Error('Invalid tasks');
+    }
+    days=parsed;
+  }
+}catch(error){warn('Saved tasks could not be read. New tasks will stay in this tab only to protect your previous data.');}
+let storageBlocked=!$('#notice').hidden;
+function save(){
+  days[selected]=tasks;
+  if(storageBlocked)return;
+  try{localStorage.setItem(STORAGE,JSON.stringify(days));}catch(error){warn('Your browser could not save this list. Keep this tab open; changes may be lost when you close it.');}
+}
+let tasks=days[selected]||[];
+$('#day').value=selected;
+function chooseDay(value){if(!/^\d{4}-\d{2}-\d{2}$/.test(value)){$('#day').value=selected;return;}selected=value;$('#day').value=value;tasks=days[value]||[];render();}
+function moveDay(amount){const date=new Date(selected+'T12:00:00');date.setDate(date.getDate()+amount);chooseDay(localDate(date));}
+$('#prev').onclick=()=>moveDay(-1);
+$('#next').onclick=()=>moveDay(1);
+$('#today').onclick=()=>chooseDay(localDate(new Date()));
+$('#day').onchange=()=>chooseDay($('#day').value);
+let filter='all';
+document.querySelectorAll('[data-filter]').forEach(button=>button.onclick=()=>{filter=button.dataset.filter;render();});
+$('#clear').onclick=()=>{tasks=tasks.filter(t=>!t.done);save();render();};
+function render(){
+  document.querySelectorAll('[data-filter]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.filter===filter)));
+  $('#tasks').replaceChildren();
+  const visible=tasks.filter(t=>filter==='all'||(filter==='done'?t.done:!t.done));
+  for(const task of visible){
+    const li=document.createElement('li');li.className='task'+(task.done?' done':'');
+    const label=document.createElement('label');label.className='check-wrap';
+    const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=task.done;checkbox.setAttribute('aria-label','Complete '+task.text);
+    checkbox.onchange=()=>{task.done=checkbox.checked;save();render();const replacement=[...$('#tasks').querySelectorAll('input')].find(el=>el.dataset.id===task.id);if(replacement)replacement.focus();};
+    checkbox.dataset.id=task.id;label.append(checkbox);
+    const title=document.createElement('span');title.className='task-title';title.textContent=task.text;
+    const remove=document.createElement('button');remove.className='delete';remove.textContent='Delete';remove.setAttribute('aria-label','Delete '+task.text);
+    remove.onclick=()=>{tasks=tasks.filter(t=>t.id!==task.id);save();render();$('#task-input').focus();};
+    li.append(label,title,remove);$('#tasks').append(li);
+  }
+  const completed=tasks.filter(t=>t.done).length;
+  const percentage=tasks.length?Math.round(completed/tasks.length*100):0;
+  $('#summary').textContent=`${completed} of ${tasks.length} completed`;
+  $('#percent').textContent=percentage+'%';$('#progress').value=percentage;
+  $('#clear').disabled=completed===0;
+  $('#empty').hidden=visible.length>0;
+  $('#empty b').textContent=tasks.length===0?'A fresh page.':filter==='done'?'Nothing completed yet.':'All caught up.';
+  $('#empty p').textContent=tasks.length===0?'Add your first task. Small is a good start.':filter==='done'?'Check off a task and it will appear here.':'No tasks left to do for this day.';
+}
+$('#add-form').addEventListener('submit',event=>{event.preventDefault();const text=$('#task-input').value.trim();if(!text)return;tasks.push({id:crypto.randomUUID(),text,done:false});save();$('#task-input').value='';render();$('#task-input').focus();});
+render();
+</script>
+</body>
+</html>

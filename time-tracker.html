@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en" data-theme="nord">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="A focused time tracker with a task queue." />
+    <title>Time Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      body {
+        min-height: 100vh;
+      }
+
+      .surface-kicker {
+        letter-spacing: 0.14em;
+        font-size: 0.68rem;
+        font-weight: 800;
+      }
+
+      .timer-digits {
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.06em;
+      }
+
+      .task-title {
+        overflow-wrap: anywhere;
+      }
+
+      :where(a, button, input):focus-visible {
+        outline: 3px solid var(--color-primary);
+        outline-offset: 3px;
+      }
+
+      .task-row {
+        transition: background-color 160ms ease, border-color 160ms ease;
+      }
+
+      .task-row[data-active="true"] {
+        border-color: color-mix(in oklab, var(--color-primary) 65%, var(--color-base-300));
+        background-color: color-mix(in oklab, var(--color-primary) 7%, var(--color-base-100));
+      }
+
+      .task-row[data-completed="true"] .task-title {
+        color: color-mix(in oklab, var(--color-base-content) 48%, transparent);
+        text-decoration: line-through;
+        text-decoration-thickness: 1px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-base-200 text-base-content">
+    <header class="navbar sticky top-0 z-20 border-b border-base-300 bg-base-100/95 px-4 shadow-sm backdrop-blur sm:px-6">
+      <div class="navbar-start">
+        <a class="btn btn-ghost gap-3 px-2 text-base font-semibold" href="#main-content">
+          <span class="grid size-8 place-items-center rounded-lg bg-primary text-xs font-black text-primary-content">TT</span>
+          <span>Time Tracker</span>
+        </a>
+      </div>
+      <div class="navbar-end gap-2">
+        <time id="today-label" class="hidden text-sm text-base-content/60 sm:block"></time>
+        <button id="clear-day" class="btn btn-ghost btn-sm" type="button">Clear day</button>
+      </div>
+    </header>
+
+    <div class="mx-auto max-w-7xl px-4 pt-4 sm:px-6">
+      <div id="app-status" class="alert hidden" role="status" aria-live="polite" aria-atomic="true"></div>
+    </div>
+
+    <main id="main-content" class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
+      <div class="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p class="surface-kicker text-primary">TODAY</p>
+          <h1 class="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Track today’s work.</h1>
+          <p class="mt-2 max-w-xl text-base-content/65">Start one task at a time.</p>
+        </div>
+        <p id="session-status" class="text-sm font-medium text-base-content/60" role="status" aria-live="polite"></p>
+      </div>
+
+      <section class="stats stats-vertical w-full border border-base-300 bg-base-100 shadow-sm sm:stats-horizontal" aria-label="Today summary">
+        <div class="stat px-5 py-4 sm:px-6">
+          <div class="stat-title text-xs font-semibold uppercase tracking-[0.12em]">Tracked today</div>
+          <div id="stats-time" class="stat-value mt-1 text-2xl font-semibold tabular-nums">0h 0m</div>
+          <div class="stat-desc mt-1">Saved sessions plus the active timer</div>
+        </div>
+        <div class="stat border-t border-base-300 px-5 py-4 sm:border-l sm:border-t-0 sm:px-6">
+          <div class="stat-title text-xs font-semibold uppercase tracking-[0.12em]">Done</div>
+          <div id="stats-completed" class="stat-value mt-1 text-2xl font-semibold tabular-nums">0</div>
+          <div class="stat-desc mt-1">Tasks completed today</div>
+        </div>
+        <div class="stat border-t border-base-300 px-5 py-4 sm:border-l sm:border-t-0 sm:px-6">
+          <div class="stat-title text-xs font-semibold uppercase tracking-[0.12em]">Sessions</div>
+          <div id="stats-sessions" class="stat-value mt-1 text-2xl font-semibold tabular-nums">0</div>
+          <div class="stat-desc mt-1">Time blocks saved</div>
+        </div>
+      </section>
+
+      <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(19rem,0.85fr)]">
+        <section class="hero rounded-box border border-base-300 bg-base-100 shadow-sm" aria-labelledby="timer-heading">
+          <div class="hero-content w-full items-stretch justify-start p-0">
+            <div class="card w-full">
+              <div class="card-body gap-6 p-6 sm:p-8">
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <p class="surface-kicker text-primary">NOW</p>
+                    <h2 id="timer-heading" class="mt-2 text-xl font-semibold">Current task</h2>
+                  </div>
+                  <span id="timer-state" class="badge badge-ghost shrink-0">Ready</span>
+                </div>
+
+                <div class="min-h-20">
+                  <p id="timer-task-title" class="task-title text-2xl font-semibold leading-tight sm:text-3xl">No active task</p>
+                  <p id="timer-meta" class="mt-2 text-sm text-base-content/60">Select a task from Today to start.</p>
+                </div>
+
+                <div class="rounded-box bg-base-200 px-4 py-6 text-center sm:px-6 sm:py-8">
+                  <time id="timer-display" class="timer-digits block text-5xl font-semibold tracking-tight sm:text-7xl" datetime="PT0S" aria-live="polite">00:00:00</time>
+                  <p class="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-base-content/50">Elapsed time</p>
+                </div>
+
+                <div class="card-actions items-center justify-between gap-3">
+                  <p id="timer-note" class="max-w-xs text-xs leading-relaxed text-base-content/55">Your timer keeps running after a refresh.</p>
+                  <button id="timer-action" class="btn btn-primary btn-lg min-w-40" type="button" data-action="timer" aria-pressed="false" disabled>
+                    <svg id="timer-action-icon" class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M8 5v14l11-7z"></path>
+                    </svg>
+                    <span id="timer-action-label">Start timer</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card card-border bg-base-100 shadow-sm" aria-labelledby="today-heading">
+          <div class="card-body p-5 sm:p-6">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <p class="surface-kicker text-primary">QUEUE</p>
+                <h2 id="today-heading" class="mt-2 text-xl font-semibold">Today</h2>
+              </div>
+              <span id="task-count" class="badge badge-ghost">0 open</span>
+            </div>
+
+            <form id="add-task-form" class="join mt-5 w-full" novalidate>
+              <label class="sr-only" for="task-input">Task name</label>
+              <input id="task-input" class="input join-item min-w-0 flex-1" type="text" maxlength="120" autocomplete="off" placeholder="Add a task" />
+              <button class="btn btn-primary join-item" type="submit">Add task</button>
+            </form>
+
+            <div class="mt-5 border-t border-base-300 pt-1">
+              <p id="task-empty" class="py-8 text-center text-sm text-base-content/60">No tasks yet. Add one to begin.</p>
+              <ul id="task-list" class="mt-3 space-y-2" aria-label="Today’s tasks"></ul>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="card card-border mt-6 bg-base-100 shadow-sm" aria-labelledby="activity-heading">
+        <div class="card-body p-5 sm:p-6">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="surface-kicker text-primary">HISTORY</p>
+              <h2 id="activity-heading" class="mt-2 text-xl font-semibold">Activity</h2>
+            </div>
+            <span id="activity-count" class="text-sm text-base-content/60">0 sessions</span>
+          </div>
+
+          <p id="activity-empty" class="py-8 text-center text-sm text-base-content/60">No sessions yet.</p>
+          <ul id="activity-list" class="timeline timeline-vertical timeline-compact mt-4 hidden" aria-label="Saved time sessions"></ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 pb-8 text-xs text-base-content/50 sm:px-6">
+      <span>Stored in this browser.</span>
+      <span>One timer runs at a time.</span>
+    </footer>
+
+    <script>
+      const STORAGE_KEY = "time-tracker-v1";
+      let storageMessage = "";
+
+      function emptyState() {
+        return { tasks: [], sessions: [], activeTimer: null };
+      }
+
+      function normalizeState(value) {
+        const tasks = Array.isArray(value?.tasks)
+          ? value.tasks
+              .filter((task) => task && typeof task.id === "string" && typeof task.title === "string")
+              .map((task) => ({
+                id: task.id,
+                title: task.title.slice(0, 120),
+                completed: Boolean(task.completed),
+                createdAt: Number(task.createdAt) || Date.now()
+              }))
+          : [];
+
+        const sessions = Array.isArray(value?.sessions)
+          ? value.sessions
+              .filter((session) => session && typeof session.id === "string" && typeof session.taskId === "string")
+              .map((session) => ({
+                id: session.id,
+                taskId: session.taskId,
+                startedAt: Number(session.startedAt) || Date.now(),
+                endedAt: Number(session.endedAt) || Date.now(),
+                durationMs: Math.max(0, Number(session.durationMs) || 0)
+              }))
+          : [];
+
+        const activeTimer = value?.activeTimer && typeof value.activeTimer.taskId === "string"
+          ? { taskId: value.activeTimer.taskId, startedAt: Number(value.activeTimer.startedAt) || Date.now() }
+          : null;
+
+        return { tasks, sessions, activeTimer };
+      }
+
+      function loadState() {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          return saved ? normalizeState(JSON.parse(saved)) : emptyState();
+        } catch {
+          storageMessage = "Your data could not be saved.";
+          return emptyState();
+        }
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+          storageMessage = "";
+          return true;
+        } catch {
+          storageMessage = "Your data could not be saved.";
+          return false;
+        }
+      }
+
+      let appState = loadState();
+
+      window.loadState = loadState;
+      window.saveState = saveState;
+
+      function makeId() {
+        return typeof crypto?.randomUUID === "function"
+          ? crypto.randomUUID()
+          : Date.now().toString(36) + Math.random().toString(36).slice(2);
+      }
+
+      function getTask(taskId) {
+        return appState.tasks.find((task) => task.id === taskId) || null;
+      }
+
+      function showMessage(message, type = "info") {
+        const status = document.querySelector("#app-status");
+        status.textContent = message || "";
+        status.classList.toggle("hidden", !message);
+        status.classList.toggle("alert-error", Boolean(message) && type === "error");
+        status.classList.toggle("alert-info", Boolean(message) && type === "info");
+      }
+
+      function addTask(title) {
+        const trimmed = title.trim();
+        if (!trimmed) {
+          showMessage("Enter a task name.", "error");
+          return false;
+        }
+
+        appState.tasks.push({
+          id: makeId(),
+          title: trimmed.slice(0, 120),
+          completed: false,
+          createdAt: Date.now()
+        });
+        saveState();
+        return true;
+      }
+
+      function orderedTasks() {
+        return [...appState.tasks].sort((a, b) => {
+          const activeRank = (task) => appState.activeTimer?.taskId === task.id ? 0 : 1;
+          const completeRank = (task) => task.completed ? 1 : 0;
+          return activeRank(a) - activeRank(b) || completeRank(a) - completeRank(b) || a.createdAt - b.createdAt;
+        });
+      }
+
+      function formatDuration(milliseconds) {
+        const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        if (hours > 0) return hours + "h " + minutes + "m";
+        if (minutes > 0) return minutes + "m";
+        return seconds + "s";
+      }
+
+      function formatClock(milliseconds) {
+        const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+        const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, "0");
+        const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0");
+        const seconds = String(totalSeconds % 60).padStart(2, "0");
+        return hours + ":" + minutes + ":" + seconds;
+      }
+
+      function formatTime(timestamp) {
+        return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(timestamp));
+      }
+
+      function formatDate(timestamp) {
+        return new Intl.DateTimeFormat(undefined, { weekday: "long", month: "long", day: "numeric" }).format(new Date(timestamp));
+      }
+
+      function finalizeActiveSession(endedAt = Date.now()) {
+        if (!appState.activeTimer) return null;
+        const { taskId, startedAt } = appState.activeTimer;
+        const session = {
+          id: makeId(),
+          taskId,
+          startedAt,
+          endedAt,
+          durationMs: Math.max(0, endedAt - startedAt)
+        };
+        appState.sessions.push(session);
+        appState.activeTimer = null;
+        return session;
+      }
+
+      function startTimer(taskId) {
+        const task = getTask(taskId);
+        if (!task || task.completed) return;
+        if (appState.activeTimer?.taskId === taskId) return;
+        if (appState.activeTimer) finalizeActiveSession();
+        appState.activeTimer = { taskId, startedAt: Date.now() };
+        sessionStatus = "Tracking " + task.title;
+        saveState();
+        render();
+      }
+
+      function stopTimer() {
+        const task = getTask(appState.activeTimer?.taskId);
+        const session = finalizeActiveSession();
+        if (!session) return;
+        sessionStatus = "Timer stopped" + (task ? " for " + task.title : "");
+        saveState();
+        render();
+      }
+
+      function renderTimer() {
+        const title = document.querySelector("#timer-task-title");
+        const meta = document.querySelector("#timer-meta");
+        const display = document.querySelector("#timer-display");
+        const stateBadge = document.querySelector("#timer-state");
+        const action = document.querySelector("#timer-action");
+        const actionLabel = document.querySelector("#timer-action-label");
+        const actionIcon = document.querySelector("#timer-action-icon");
+        const note = document.querySelector("#timer-note");
+        const activeTask = getTask(appState.activeTimer?.taskId);
+        const openTask = orderedTasks().find((task) => !task.completed);
+        const isRunning = Boolean(appState.activeTimer && activeTask);
+        const elapsed = isRunning ? Date.now() - appState.activeTimer.startedAt : 0;
+
+        title.textContent = isRunning ? activeTask.title : "No active task";
+        meta.textContent = isRunning
+          ? "Started at " + formatTime(appState.activeTimer.startedAt)
+          : openTask
+            ? "Start the first open task here or use a row in Today."
+            : "Add a task to start the timer.";
+        display.textContent = formatClock(elapsed);
+        display.dateTime = "PT" + Math.floor(elapsed / 1000) + "S";
+        stateBadge.textContent = isRunning ? "Running" : "Ready";
+        stateBadge.className = isRunning ? "badge badge-success badge-soft shrink-0" : "badge badge-ghost shrink-0";
+        action.className = isRunning ? "btn btn-error btn-lg min-w-40" : "btn btn-primary btn-lg min-w-40";
+        action.disabled = !isRunning && !openTask;
+        action.setAttribute("aria-pressed", String(isRunning));
+        actionLabel.textContent = isRunning ? "Stop timer" : "Start timer";
+        actionIcon.innerHTML = isRunning
+          ? '<rect x="6" y="6" width="12" height="12" rx="1"></rect>'
+          : '<path d="M8 5v14l11-7z"></path>';
+        note.textContent = isRunning ? "Stop the timer when you change tasks." : "Your timer keeps running after a refresh.";
+        document.querySelector("#session-status").textContent = sessionStatus;
+        renderStats();
+      }
+
+      function renderActivity() {
+        const list = document.querySelector("#activity-list");
+        const empty = document.querySelector("#activity-empty");
+        const count = document.querySelector("#activity-count");
+        const sessions = [...appState.sessions].sort((a, b) => b.endedAt - a.endedAt);
+
+        list.replaceChildren();
+        count.textContent = sessions.length + (sessions.length === 1 ? " session" : " sessions");
+        empty.classList.toggle("hidden", sessions.length > 0);
+        list.classList.toggle("hidden", sessions.length === 0);
+
+        sessions.forEach((session, index) => {
+          const task = getTask(session.taskId);
+          const item = document.createElement("li");
+
+          if (index > 0) {
+            const topLine = document.createElement("hr");
+            topLine.className = "bg-base-300";
+            item.append(topLine);
+          }
+
+          const start = document.createElement("div");
+          start.className = "timeline-start text-xs text-base-content/55";
+          start.textContent = formatTime(session.endedAt);
+
+          const middle = document.createElement("div");
+          middle.className = "timeline-middle";
+          middle.innerHTML = '<span class="grid size-5 place-items-center rounded-full bg-success/15 text-success"><svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg></span>';
+
+          const end = document.createElement("div");
+          end.className = "timeline-end timeline-box mb-4 w-full border-base-300 bg-base-200/40";
+
+          const taskName = document.createElement("p");
+          taskName.className = "task-title font-semibold";
+          taskName.textContent = task ? task.title : "Deleted task";
+
+          const duration = document.createElement("p");
+          duration.className = "mt-1 text-sm font-medium text-success";
+          duration.textContent = formatDuration(session.durationMs);
+
+          const range = document.createElement("p");
+          range.className = "mt-1 text-xs text-base-content/55";
+          range.textContent = formatTime(session.startedAt) + " to " + formatTime(session.endedAt);
+
+          end.append(taskName, duration, range);
+          item.append(start, middle, end);
+
+          if (index < sessions.length - 1) {
+            const bottomLine = document.createElement("hr");
+            bottomLine.className = "bg-base-300";
+            item.append(bottomLine);
+          }
+
+          list.append(item);
+        });
+      }
+
+      function renderStats() {
+        const savedMilliseconds = appState.sessions.reduce((sum, session) => sum + session.durationMs, 0);
+        const activeMilliseconds = appState.activeTimer ? Date.now() - appState.activeTimer.startedAt : 0;
+        const completedCount = appState.tasks.filter((task) => task.completed).length;
+        document.querySelector("#stats-time").textContent = formatDuration(savedMilliseconds + activeMilliseconds);
+        document.querySelector("#stats-completed").textContent = String(completedCount);
+        document.querySelector("#stats-sessions").textContent = String(appState.sessions.length);
+      }
+
+      function renderTodayLabel() {
+        document.querySelector("#today-label").textContent = formatDate(Date.now());
+      }
+
+      let tickHandle = null;
+      let sessionStatus = "Ready to start";
+
+      function syncTicker() {
+        if (appState.activeTimer && !tickHandle) {
+          tickHandle = window.setInterval(() => {
+            renderTimer();
+          }, 1000);
+        }
+        if (!appState.activeTimer && tickHandle) {
+          window.clearInterval(tickHandle);
+          tickHandle = null;
+        }
+      }
+
+      function toggleTask(taskId) {
+        const task = getTask(taskId);
+        if (!task) return;
+
+        const completing = !task.completed;
+        if (completing && appState.activeTimer?.taskId === taskId) {
+          finalizeActiveSession();
+          sessionStatus = "Completed " + task.title;
+        }
+        task.completed = completing;
+        saveState();
+        render();
+      }
+
+      function renderTasks() {
+        const list = document.querySelector("#task-list");
+        const empty = document.querySelector("#task-empty");
+        const count = document.querySelector("#task-count");
+        const tasks = orderedTasks();
+        const openCount = tasks.filter((task) => !task.completed).length;
+
+        list.replaceChildren();
+        count.textContent = openCount + " open";
+        empty.classList.toggle("hidden", tasks.length > 0);
+        list.classList.toggle("hidden", tasks.length === 0);
+
+        tasks.forEach((task) => {
+          const active = appState.activeTimer?.taskId === task.id;
+          const row = document.createElement("li");
+          row.className = "task-row flex items-center gap-3 rounded-box border border-base-300 p-3";
+          row.dataset.taskId = task.id;
+          row.dataset.active = String(active);
+          row.dataset.completed = String(task.completed);
+
+          const label = document.createElement("label");
+          label.className = "flex min-w-0 flex-1 cursor-pointer items-start gap-3";
+
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.className = "checkbox checkbox-primary mt-0.5 shrink-0";
+          checkbox.checked = task.completed;
+          checkbox.dataset.action = "complete";
+          checkbox.dataset.taskId = task.id;
+          checkbox.setAttribute("aria-label", "Mark " + task.title + " done");
+
+          const copy = document.createElement("span");
+          copy.className = "min-w-0 space-y-1";
+
+          const title = document.createElement("span");
+          title.className = "task-title block font-medium leading-snug";
+          title.textContent = task.title;
+
+          const badge = document.createElement("span");
+          badge.className = active
+            ? "badge badge-primary badge-soft badge-sm"
+            : task.completed
+              ? "badge badge-success badge-soft badge-sm"
+              : "badge badge-ghost badge-sm";
+          badge.textContent = active ? "Active" : task.completed ? "Done" : "Open";
+
+          copy.append(title, badge);
+          label.append(checkbox, copy);
+          row.append(label);
+
+          if (!task.completed) {
+            const action = document.createElement("button");
+            action.type = "button";
+            action.className = active ? "btn btn-primary btn-sm" : "btn btn-ghost btn-sm";
+            action.dataset.action = active ? "stop" : "start";
+            action.dataset.taskId = task.id;
+            action.textContent = active ? "Stop" : "Start";
+            action.setAttribute("aria-label", (active ? "Stop " : "Start ") + task.title);
+            row.append(action);
+          }
+
+          list.append(row);
+        });
+      }
+
+      document.addEventListener("click", (event) => {
+        const startButton = event.target.closest("[data-action='start']");
+        const stopButton = event.target.closest("[data-action='stop']");
+        const timerButton = event.target.closest("[data-action='timer']");
+        if (startButton) startTimer(startButton.dataset.taskId);
+        if (stopButton) stopTimer();
+        if (timerButton) {
+          if (appState.activeTimer) {
+            stopTimer();
+          } else {
+            const firstOpenTask = orderedTasks().find((task) => !task.completed);
+            if (firstOpenTask) startTimer(firstOpenTask.id);
+          }
+        }
+      });
+
+      document.addEventListener("change", (event) => {
+        const completeBox = event.target.closest("[data-action='complete']");
+        if (completeBox) toggleTask(completeBox.dataset.taskId);
+      });
+
+      document.querySelector("#add-task-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const input = document.querySelector("#task-input");
+        if (addTask(input.value)) {
+          input.value = "";
+          render();
+        }
+      });
+
+      document.querySelector("#clear-day").addEventListener("click", () => {
+        if (!window.confirm("Clear all tasks and sessions?")) return;
+        appState = emptyState();
+        sessionStatus = "Ready to start";
+        saveState();
+        render();
+      });
+
+      function render() {
+        renderTodayLabel();
+        renderStats();
+        renderTasks();
+        renderActivity();
+        renderTimer();
+        showMessage(storageMessage, "error");
+        syncTicker();
+      }
+
+      render();
+    </script>
+  </body>
+</html>
